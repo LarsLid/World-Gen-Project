@@ -16,14 +16,19 @@ font = pygame.font.SysFont(None, 36)
 clock = pygame.time.Clock()
 camera = Camera()
 
+def bootup():
+    global grid
+    grid_size = (100,100)
+    grid = gridGen(grid_size)
+    island_size = 1000
+    grid = islandGen(grid, grid_size, island_size)
+    grid = beachGen(grid)
 
 
-grid = gridGen()
 
 
 
-
-
+bootup()
 running = True
 while running:
     dt = clock.tick(60) / 1000
@@ -32,8 +37,11 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-            running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_r:
+                bootup()
+            elif event.key == pygame.K_ESCAPE:
+                running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
             pass
         if event.type == pygame.VIDEORESIZE:
@@ -45,7 +53,7 @@ while running:
     camera.update(dt, pygame.key.get_pressed())
 
     #DRAWING BELOW
-    screen.fill((0,250,0))
+    screen.fill((0,0,130))
 
     drawTiles(screen, grid, camera)
 
