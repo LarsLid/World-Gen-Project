@@ -2,10 +2,10 @@ import pygame
 import random as rd
 import math
 tile_s = 10
-tile_type_colors = {"water" : (0,0,140),
-                    "grass" : (0,140,0),
-                    "sand"  : (237, 208, 92),
-                    "lava"  : (140,0,0)
+tile_type_colors = {"water" : [(0,0,130), (0,0,130), (0,0,140), (0,0,150)],
+                    "grass" : [(0,140,0), (0,130, 20)],
+                    "sand"  : [(237, 208, 92), (245, 208, 90)],
+                    "lava"  : [(140,0,0)]
                     }
 def gridGen(grid_size=tuple):
     grid = []
@@ -26,27 +26,55 @@ def drawTiles(screen, grid, camera):
 def islandGen(grid, grid_size, island_size):
     global start_gridPos, spiralGrid
     size_remaining = island_size
-    start_gridPos = (rd.randint(30,grid_size[0]-30), rd.randint(30,grid_size[1]-30))
+    start_gridPos = (rd.randint(10,grid_size[0]-10), rd.randint(10,grid_size[1]-10))
     spiralGrid = spiralFromCenter(grid, start_gridPos)
     for i in range(len(spiralGrid)):
         tile = spiralGrid[i]
         roll = rd.randint(0,10)
         touching_grass = sum(1 for x in tile.returnTouching(grid) if x.type == "grass")
-        print(touching_grass)
         if (size_remaining/island_size)*15+roll+touching_grass*2 > 15:
             tile.type="grass"
             size_remaining -=1
+        if size_remaining<island_size*0.2: #stops island gen when island "done"
+            return grid
+    return grid #returns grid incase it wasnt stopped early
+
+def islandGen2(grid, grid_size, island_size):
+    global start_gridPos, spiralGrid
+    size_remaining = island_size
+    start_gridPos = (rd.randint(10,grid_size[0]-10), rd.randint(10,grid_size[1]-10))
+    spiralGrid = spiralFromCenter(grid, start_gridPos)
+    start_tile = grid[start_gridPos[0]][start_gridPos[1]]
+    chosen_tiles = [start_tile]
+    while size_remaining > 0:
+        possible_tiles = []
+        for tile in chosen_tiles:
+            possible_tiles.append(tile.returnTouching(grid))
+        chosen_tiles = []
+        for tile_list in possible_tiles:
+            chosen_tile = rd.choice(tile_list)
+            chosen_tile.type = "grass"
+            chosen_tiles.append(chosen_tile)
+            size_remaining -=1
     return grid
+
+            
+        
+        
+
 
 def beachGen(grid):
-    for i in range(len(spiralGrid)):
-            tile = spiralGrid[i]
-            touching_water = sum(1 for x in tile.returnTouching(grid) if x.type == "water")
-            if tile.type == "grass" and touching_water >= 3:
-                tile.type = "sand"
+    for j in range(2):
+        for i in range(len(spiralGrid)):
+                tile = spiralGrid[i]
+                touching_grass = sum(1 for x in tile.returnTouching(grid) if x.type == "grass")
+                touching_water = sum(1 for x in tile.returnTouching(grid) if x.type == "water")
+                touching_sand  = sum(1 for x in tile.returnTouching(grid) if x.type == "sand")
+                if tile.type == "grass" and touching_water >= 3  or tile.type == "water" and touching_grass>0 and touching_sand>0:
+                    tile.type = "sand"
+    
+    
     return grid
-
-
 
 
 def spiralFromCenter(grid, center):
@@ -60,15 +88,23 @@ def spiralFromCenter(grid, center):
 
 class Tile:
     def __init__(self, type = str, gridPos = list, tile_type_colors = list):
-        self.type = type
+        self.tile_type_colors = tile_type_colors
         self.gridPos = gridPos  # real (i, j) index into the grid list
-        self.pos = ((gridPos[0]-50)*tile_s, (gridPos[1]-50)*tile_s)  # centered world position
+        self.pos = (gridPos[0]*tile_s, gridPos[1]*tile_s)  # world position; grid's (0,0) corner is world origin
         tile_s_real = tile_s+5
         self.rect = pygame.Rect(self.pos[0]-tile_s_real//2, self.pos[1]-tile_s_real//2, tile_s_real, tile_s_real)
-        self.color = tile_type_colors[self.type]
+        self.type = type  # goes through the setter below, picking a shade once
+
+    @property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, value):
+        self._type = value
+        self.color = rd.choice(self.tile_type_colors[value])
 
     def draw(self, screen, camera):
-        self.color = tile_type_colors[self.type]
         pygame.draw.rect(screen, self.color, camera.apply_rect(self.rect, screen.get_size()))
 
     def returnTouching(self, grid):

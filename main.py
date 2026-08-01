@@ -10,6 +10,7 @@ pygame.init()
 WIDTH, HEIGHT = 1200, 700
 cx, cy = WIDTH//2, HEIGHT//2
 screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+screen_size = screen.get_size()
 pygame.display.set_caption("World Gen")
 
 font = pygame.font.SysFont(None, 36)
@@ -17,11 +18,19 @@ clock = pygame.time.Clock()
 camera = Camera()
 
 def bootup():
-    global grid
-    grid_size = (100,100)
+    global grid, camera
+    grid_width = 300
+    grid_size = (grid_width,int(grid_width*(HEIGHT/WIDTH)))
+    camera.set_bounds(grid_size[0]*tile_s, grid_size[1]*tile_s)
+    camera.update_min_zoom(screen_size)
+    camera.zoom = camera.min_zoom
+    camera.x, camera.y = grid_size[0]*tile_s/2, grid_size[1]*tile_s/2
     grid = gridGen(grid_size)
     island_size = 1000
-    grid = islandGen(grid, grid_size, island_size)
+    for i in range(50):
+        grid = islandGen(grid, grid_size, island_size//20)
+    for i in range(40):
+        grid = islandGen2(grid, grid_size, island_size)
     grid = beachGen(grid)
 
 
@@ -48,12 +57,15 @@ while running:
             WIDTH, HEIGHT = event.w, event.h
             cx, cy = WIDTH // 2, HEIGHT // 2
             screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
+            screen_size = screen.get_size()
+            camera.update_min_zoom(screen_size)
         camera.handle_event(event)
 
     camera.update(dt, pygame.key.get_pressed())
+    camera.clamp(screen_size)
 
     #DRAWING BELOW
-    screen.fill((0,0,130))
+    screen.fill((120, 64, 7))
 
     drawTiles(screen, grid, camera)
 
